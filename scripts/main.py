@@ -53,7 +53,7 @@ player_character1 = player_character.Player_character((100,100,42,43))
 player_rect = pygame.Rect(player_character1.player_rect)
 
 
-#background attributes
+#background attribute
 true_scroll = [0,0] 
 bg = [-100,0]
 flag = False
