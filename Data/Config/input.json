@@ -1,3 +1,10 @@
 {
 
-{
+    "keys": [
+        {
+        "right": "RIGHT",
+        "left": "LEFT",
+        "up": "UP"
+        }
+    ]
+}

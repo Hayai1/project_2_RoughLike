@@ -1,64 +1,40 @@
-import pygame, sys, time
+import pygame, sys, time, random
 import modules.player_character.player_character as player_character
+import modules.engineFolder.engine as engine
 
 clock = pygame.time.Clock()
 
 from pygame.locals import *
 
 pygame.init() # initiates pygame
+pygame.mixer.init()
 
+pygame.mixer.music.load("assets/audio/music/music.wav")
+jumping = pygame.mixer.Sound("assets/audio/sounds/jump/jump.wav")
+pygame.mixer.music.set_volume(0.2)
 pygame.display.set_caption('Pygame Platformer')
 
-WINDOW_SIZE = (800,600)
+WINDOW_SIZE = (1920,1080)
 
 screen = pygame.display.set_mode(WINDOW_SIZE,0,32) # initiate the window
 
-display = pygame.Surface((400,300)) # used as the surface for rendering, which is scaled
+display = pygame.Surface((640,360),pygame.FULLSCREEN) # used as the surface for rendering, which is scaled
 
 
-global animation_frames
-animation_frames = {}
-# game engine
-def load_animation(path,frame_durations):#path, [7,7,40]
-    animation_name = path.split('/')[-1]
-    animation_frame_data = []
-    n = 0
-    for frame in frame_durations:
-        n = str(n) 
-        animation_frame_id = animation_name + '_' + n
-        img_loc = path + '/' + animation_frame_id + '.png'
-        animation_image = pygame.image.load(img_loc).convert()
-        animation_image.set_colorkey((255,255,255))
-        animation_frames[animation_frame_id] = animation_image.copy()
-        for i in range(frame):
-            animation_frame_data.append(animation_frame_id)
-        n = int(n) 
-        n += 1
-    return animation_frame_data
+playerEngine = engine.Engine(('assets/player_animations/run'),('assets/player_animations/idle'),('assets/player_animations/fall'),[7,7,7,7],[7,7,7,7,7,7],[7,7,7])
+player_character1 = player_character.Player_character()
+playerPhysics = engine.PhysicsEngine(100,100,45,45)
+EventEngine = engine.Events()
 
-def change_action(action_var,frame,new_value):
-    if action_var != new_value:
-        action_var = new_value
-        frame =0
-    return action_var,frame
-
-# character attributes
-animation_database = {}
-animation_database['run'] = load_animation('assets/player_animations/run',[7,7,7])
-animation_database['idle'] = load_animation('assets/player_animations/idle',[7,7,7])
-animation_database['fall'] = load_animation('assets/player_animations/fall',[7,7])
-
-player_character1 = player_character.Player_character((100,100,42,43))
-
-player_rect = pygame.Rect(player_character1.player_rect)
-
+lp = random.randint(1,1000000)
+if lp == 21:
+    print("lizzy eats potatoes")
 
 #background attribute
 true_scroll = [0,0] 
 bg = [-100,0]
 flag = False
-flag_2 = False
-
+playJumpSound = True 
 # game engine because it starts the game
 def load_map(path):
     f = open(path + '.txt','r')
@@ -71,7 +47,7 @@ def load_map(path):
     return game_map
 
 #attribues for the game engine class
-game_map = load_map('Data/Game/map')
+game_map = load_map('Data/Game/frontTileMap')
 grass_img= pygame.image.load('assets/backgrounds/tiles/grass.png')
 dirt_img= pygame.image.load('assets/backgrounds/tiles/dirt.png')
 bg_image= pygame.image.load('assets/backgrounds/bgs/bg hills.png').convert()
@@ -80,47 +56,23 @@ bg_image.set_colorkey((255,255,255))
 
 
 
-# helper lib
-#to test any two object collide
-def collision_test(rect,tiles):
-    hit_list = []
-    for tile in tiles:
-        if rect.colliderect(tile):
-            hit_list.append(tile)
-    return hit_list
+def fallCheck():
+    playerYChecker = ["0.6000000000000001","0.2","0.8","1.0","1.2","0.4"]
+    for i in playerYChecker:
+        i = float(i)
+        if player_character1.vertical_momentum == i:
+            return False
+    return True
 
-
-# helper lib
-def move(rect,movement,tiles):
-    collision_types = {'top':False,'bottom':False,'right':False,'left':False}
-    rect.x += movement[0]
-    hit_list = collision_test(rect,tiles)
-    for tile in hit_list:
-        if movement[0] > 0:
-            rect.right = tile.left
-            collision_types['right'] = True
-        elif movement[0] < 0:
-            rect.left = tile.right
-            collision_types['left'] = True
-    rect.y += movement[1]
-    hit_list = collision_test(rect,tiles)
-    for tile in hit_list:
-        if movement[1] > 0:
-            rect.bottom = tile.top
-            collision_types['bottom'] = True
-        elif movement[1] < 0:
-            rect.top = tile.bottom
-            collision_types['top'] = True
-    return rect, collision_types
-
-
-
-# game engine
+enemyRect = pygame.Rect(650, 0, 45, 45)
+pygame.mixer.music.play()
 while True: # game loop
+    
     display.fill((146,244,255)) # clear screen by filling it with bluee
+    pygame.draw.rect(display, (255,0,0), enemyRect)
 
-    true_scroll[0] += (player_rect.x-true_scroll[0]-152)/20
-    true_scroll[1] += (player_rect.y-true_scroll[1]-106)/20
+    true_scroll[0] += (playerPhysics.rect.x-true_scroll[0]-200)/20
+    true_scroll[1] += (playerPhysics.rect.y-true_scroll[1]-200)/20
     scroll = true_scroll.copy()
     scroll[0] = int(scroll[0])
     scroll[1] = int(scroll[1])
@@ -140,38 +92,33 @@ while True: # game loop
                 tile_rects.append(pygame.Rect(x*16,y*16,16,16))
             x += 1
         y += 1
-
     player_movement = [0,0]
     if player_character1.moving_right == True:
-        #TODO create fucntion to move the character
+    
         player_movement[0] += 4
     if player_character1.moving_left == True:
         player_movement[0] -= 4
     player_movement[1] += player_character1.vertical_momentum
     player_character1.vertical_momentum += 0.2
-    if flag_2:
-        if player_character1.vertical_momentum == 0.2:
-            flag_2 = False
-            flag = False
-        else:
-            flag = True
-    if player_character1.vertical_momentum > 5:
-        player_character1.vertical_momentum = 5
+    falling = fallCheck()
 
-    if flag:
-        player_character1.player_action,player_character1.player_frame =change_action(player_character1.player_action,player_character1.player_frame,'fall')
+    if fallCheck():
+        player_character1.player_action,player_character1.player_frame =playerEngine.change_action(player_character1.player_action,player_character1.player_frame,'fall')
+        playJumpSound = False
     elif player_movement[0] >0:
-        player_character1.player_action,player_character1.player_frame =change_action(player_character1.player_action,player_character1.player_frame,'run')
+        player_character1.player_action,player_character1.player_frame =playerEngine.change_action(player_character1.player_action,player_character1.player_frame,'run')
         player_character1.player_flip = False
     elif player_movement[0] ==0:
-        player_character1.player_action,player_character1.player_frame =change_action(player_character1.player_action,player_character1.player_frame,'idle')
+        player_character1.player_action,player_character1.player_frame =playerEngine.change_action(player_character1.player_action,player_character1.player_frame,'idle')
     elif player_movement[0] <0:
-        player_character1.player_action,player_character1.player_frame =change_action(player_character1.player_action,player_character1.player_frame,'run')
+        player_character1.player_action,player_character1.player_frame =playerEngine.change_action(player_character1.player_action,player_character1.player_frame,'run')
         player_character1.player_flip = True
-    player_rect,collisions = move(player_rect,player_movement,tile_rects)
+    playerPhysics.rect,collisions = playerPhysics.move(player_movement,tile_rects)
+    if fallCheck() == False:
+        playJumpSound = True
 
     if collisions['bottom'] == True:
-        air_timer = 0
+        player_character1.air_timer = 0
         player_character1.vertical_momentum = 0
     else:
         player_character1.air_timer += 1
@@ -180,32 +127,16 @@ while True: # game loop
 
 
     player_character1.player_frame += 1
-    if player_character1.player_frame >= len(animation_database[player_character1.player_action]):
+    if player_character1.player_frame >= len(playerEngine.animation_database[player_character1.player_action]):
         player_character1.player_frame = 0
-    player_img_id = animation_database[player_character1.player_action][player_character1.player_frame]
-    player_img = animation_frames[player_img_id]
-    display.blit(pygame.transform.flip(player_img,player_character1.player_flip,False),(player_rect.x-scroll[0],player_rect.y-scroll[1]))
+    player_img_id = playerEngine.animation_database[player_character1.player_action][player_character1.player_frame]
+    player_img = playerEngine.animation_frames[player_img_id]
+    display.blit(pygame.transform.flip(player_img,player_character1.player_flip,False),(playerPhysics.rect.x-scroll[0],playerPhysics.rect.y-scroll[1]))
 
-    for event in pygame.event.get(): # event loop
-        if event.type == QUIT:
-            pygame.quit()
-            sys.exit()
-        if event.type == KEYDOWN:
-            if event.key == K_RIGHT:
-                player_character1.moving_right = True
-            if event.key == K_LEFT:
-                player_character1.moving_left = True
-                
-            if event.key == K_UP:
-                flag_2 = True
-                if air_timer < 6:
-                    player_character1.vertical_momentum = -5
-        if event.type == KEYUP:
-            if event.key == K_RIGHT:
-                player_character1.moving_right = False
-            if event.key == K_LEFT:
-                player_character1.moving_left = False
-        
+    player_character1.moving_right,player_character1.moving_left,player_character1.vertical_momentum,flag = EventEngine.Eventchecker(player_character1.air_timer,player_character1.moving_right,player_character1.moving_left,player_character1.vertical_momentum,flag,jumping,playJumpSound)
+
+    #print(player_character1.vertical_momentum)
     screen.blit(pygame.transform.scale(display,WINDOW_SIZE),(0,0))
     pygame.display.update()
     clock.tick(60)
+
