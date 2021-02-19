@@ -36,7 +36,6 @@ true_scroll = [0,0]
 bg = [-100,-200]
 flag = False
 #enemy variables
-waitTime =500
 # game engine because it starts the game
 def load_map(path):
     f = open(path + '.txt','r')
@@ -49,12 +48,11 @@ def load_map(path):
     return map
 
 
-#attribues for the game engine class
 enemyloc = load_map('data/game/enemyLoc')
 game_map = load_map('data/game/frontTileMap')
 grass_img= pygame.image.load('assets/backgrounds/tiles/grass.png')
 dirt_img= pygame.image.load('assets/backgrounds/tiles/dirt.png')
-enemy_img= pygame.image.load('assets/Enemies/Relicsan.png')
+enemy_img= pygame.image.load('assets/Enemies/enemy1.png')
 bg_image= pygame.image.load('assets/backgrounds/bgs/bg hills.png').convert()
 bg_image.set_colorkey((255,255,255))
 enemy_img.set_colorkey((255,255,255))
@@ -174,33 +172,26 @@ while True: # game loop
 
 
  
-    unused1 = 0  
-    unused2 = 0
-    playerPhysics.rect,player_character1.vertical_momentum,player_character1.air_timer,unused1,unused2,collision_types,null = playerPhysics.move(player_character1.player_movement,tile_rects,EnemyWalls,playerPhysics.rect,True,player_character1.air_timer,player_character1.vertical_momentum,unused1,unused2,0,0,EnemyAtributes.aggro)
-    del unused1,unused2,null
+    ignore = 0
+    playerPhysics.rect,player_character1.vertical_momentum,player_character1.air_timer,ignore,ignore,collision_types,null = playerPhysics.move(player_character1.player_movement,tile_rects,EnemyWalls,playerPhysics.rect,True,player_character1.air_timer,player_character1.vertical_momentum,ignore,ignore,ignore,ignore)
     counter = 0
     for i in range(0,len(enemyAtrributesClasses)):
+        waitTime =500
         EnemyPhysics=enemyPhysicsClasses[i]
         EnemyAtributes=enemyAtrributesClasses[i]
-        EnemyPhysics.rect,EnemyAtributes.vertical_momentum,var,EnemyAtributes.moving_left,EnemyAtributes.moving_right,collision_types,EnemyAtributes.enemyWaitCounter = EnemyPhysics.move(EnemyAtributes.enemy_movement,tile_rects,EnemyWalls,EnemyPhysics.rect,False,0,EnemyAtributes.vertical_momentum,EnemyAtributes.moving_left,EnemyAtributes.moving_right,EnemyAtributes.enemyWaitCounter,waitTime,EnemyAtributes.aggro) 
-        del var
-
-    player_character1.player_frame += 1
-    if player_character1.player_frame >= len(playerEngine.animation_database[player_character1.player_action]):
-        player_character1.player_frame = 0
-    player_img_id = playerEngine.animation_database[player_character1.player_action][player_character1.player_frame]
-    player_img = playerEngine.animation_frames[player_img_id]
-    for i in range(0,len(enemyAtrributesClasses)):
-        EnemyPhysics=enemyPhysicsClasses[i]
-        EnemyAtributes=enemyAtrributesClasses[i]
-
-        if EnemyPhysics.rect.x + 1000 < playerPhysics.rect.x or EnemyPhysics.rect.x - 1000 < playerPhysics.rect.x :
-            EnemyAtributes.aggro = True
+        EnemyPhysics.rect,EnemyAtributes.vertical_momentum,ignore,EnemyAtributes.moving_left,EnemyAtributes.moving_right,collision_types,EnemyAtributes.enemyWaitCounter = EnemyPhysics.move(EnemyAtributes.enemy_movement,tile_rects,EnemyWalls,EnemyPhysics.rect,False,0,EnemyAtributes.vertical_momentum,EnemyAtributes.moving_left,EnemyAtributes.moving_right,EnemyAtributes.enemyWaitCounter,waitTime) 
         if EnemyAtributes.moving_left:
             EnemyAtributes.enemy_flip = True
         else:
             EnemyAtributes.enemy_flip = False
         display.blit(pygame.transform.flip(enemy_img,EnemyAtributes.enemy_flip,False),(EnemyPhysics.rect.x-scroll[0],EnemyPhysics.rect.y-scroll[1]))
+    player_character1.player_frame += 1
+    if player_character1.player_frame >= len(playerEngine.animation_database[player_character1.player_action]):
+        player_character1.player_frame = 0
+    player_img_id = playerEngine.animation_database[player_character1.player_action][player_character1.player_frame]
+    player_img = playerEngine.animation_frames[player_img_id]
+
+        
     display.blit(pygame.transform.flip(player_img,player_character1.player_flip,False),(playerPhysics.rect.x-scroll[0],playerPhysics.rect.y-scroll[1]))
 
     player_character1.moving_right,player_character1.moving_left,player_character1.vertical_momentum,flag = EventEngine.Eventchecker(player_character1.air_timer,player_character1.moving_right,player_character1.moving_left,player_character1.vertical_momentum,flag,jumping,player_character1.playJumpSound)
