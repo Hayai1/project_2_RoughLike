@@ -104,9 +104,9 @@ def enmimMoving(moving_right,moving_left,vertical_momentum,movement):
     movement = [0,0]
     if moving_right == True:
     
-        movement[0] += 1
+        movement[0] += 5
     if moving_left == True:
-        movement[0] -= 1
+        movement[0] -= 5
     movement[1] += vertical_momentum
     vertical_momentum += 0.2
     return movement, vertical_momentum
@@ -118,7 +118,7 @@ counter = 0
 while True: # game loop
     display.fill((146,244,255)) # clear screen by filling it with bluee
 
-
+    #scrolling and background
     true_scroll[0] += (playerPhysics.rect.x-true_scroll[0]-200)/20
     true_scroll[1] += (playerPhysics.rect.y-true_scroll[1]-200)/20
     scroll = true_scroll.copy()
@@ -126,7 +126,7 @@ while True: # game loop
     scroll[1] = int(scroll[1])
 
     display.blit(bg_image,(bg[0]-scroll[0]*0.25,bg[1]-scroll[1]*0.25))
-    
+    #displays tiles and creats rects for them
     tile_rects = []
     y = 0
     for layer in game_map:
@@ -152,7 +152,7 @@ while True: # game loop
 
     
 
-    
+    #player animation coordinator
     player_character1.player_movement,player_character1.vertical_momentum = moving(player_character1.moving_right,player_character1.moving_left,player_character1.vertical_momentum,player_character1.player_movement)
     for EnemyAtributes in enemyAtrributesClasses:
         EnemyAtributes.enemy_movement,EnemyAtributes.vertical_momentum = enmimMoving(EnemyAtributes.moving_right,EnemyAtributes.moving_left,EnemyAtributes.vertical_momentum,EnemyAtributes.enemy_movement)
@@ -173,30 +173,34 @@ while True: # game loop
 
  
     ignore = 0
+    #player movement and collison check
     playerPhysics.rect,player_character1.vertical_momentum,player_character1.air_timer,ignore,ignore,collision_types,null = playerPhysics.move(player_character1.player_movement,tile_rects,EnemyWalls,playerPhysics.rect,True,player_character1.air_timer,player_character1.vertical_momentum,ignore,ignore,ignore,ignore)
     counter = 0
     for i in range(0,len(enemyAtrributesClasses)):
         waitTime =500
         EnemyPhysics=enemyPhysicsClasses[i]
         EnemyAtributes=enemyAtrributesClasses[i]
+        #enemy movement and collison check
         EnemyPhysics.rect,EnemyAtributes.vertical_momentum,ignore,EnemyAtributes.moving_left,EnemyAtributes.moving_right,collision_types,EnemyAtributes.enemyWaitCounter = EnemyPhysics.move(EnemyAtributes.enemy_movement,tile_rects,EnemyWalls,EnemyPhysics.rect,False,0,EnemyAtributes.vertical_momentum,EnemyAtributes.moving_left,EnemyAtributes.moving_right,EnemyAtributes.enemyWaitCounter,waitTime) 
+        #enemy display
         if EnemyAtributes.moving_left:
             EnemyAtributes.enemy_flip = True
         else:
             EnemyAtributes.enemy_flip = False
+        
         display.blit(pygame.transform.flip(enemy_img,EnemyAtributes.enemy_flip,False),(EnemyPhysics.rect.x-scroll[0],EnemyPhysics.rect.y-scroll[1]))
+    
+    #player display
     player_character1.player_frame += 1
     if player_character1.player_frame >= len(playerEngine.animation_database[player_character1.player_action]):
         player_character1.player_frame = 0
     player_img_id = playerEngine.animation_database[player_character1.player_action][player_character1.player_frame]
     player_img = playerEngine.animation_frames[player_img_id]
-
-        
     display.blit(pygame.transform.flip(player_img,player_character1.player_flip,False),(playerPhysics.rect.x-scroll[0],playerPhysics.rect.y-scroll[1]))
-
+    #events
     player_character1.moving_right,player_character1.moving_left,player_character1.vertical_momentum,flag = EventEngine.Eventchecker(player_character1.air_timer,player_character1.moving_right,player_character1.moving_left,player_character1.vertical_momentum,flag,jumping,player_character1.playJumpSound)
                 
-
+    #clock / display/ displayupdate
     screen.blit(pygame.transform.scale(display,WINDOW_SIZE),(0,0))
     pygame.display.update()
     clock.tick(60)

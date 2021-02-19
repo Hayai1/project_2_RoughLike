@@ -50,6 +50,26 @@ def collision_test(rect,tiles):
             hit_list.append(tile)
     return hit_list
 
+def NonAggroEnemyMovement(movement,walls,rect,moving_left,moving_right,EnemyWaitCounter,waitTime,collision_types,wall):
+    if movement[0] > 0:
+        rect.right = wall.left
+        collision_types['right'] = True
+        if EnemyWaitCounter == waitTime:
+            moving_right = False
+            moving_left = True
+            EnemyWaitCounter = 0
+        else:
+            EnemyWaitCounter += 1
+    elif movement[0] < 0:
+        rect.left = wall.right
+        collision_types['left'] = True
+        if EnemyWaitCounter == waitTime:
+            moving_right = True
+            moving_left = False
+            EnemyWaitCounter = 0
+        else:
+            EnemyWaitCounter += 1
+    return movement,walls,rect,moving_left,moving_right,EnemyWaitCounter,waitTime,collision_types
         
 
 class PhysicsEngine:
@@ -76,28 +96,7 @@ class PhysicsEngine:
         if playerIndicator == False:
             wall_list = collision_test(rect,walls)
             for wall in wall_list:
-                if movement[0] > 0:
-                    rect.right = wall.left
-                    collision_types['right'] = True
-                
-                    if EnemyWaitCounter == waitTime:
-                        moving_right = False
-                        moving_left = True
-                        enemyWaitCounter = 0
-                    else:
-                        EnemyWaitCounter += 1
-                elif movement[0] < 0:
-                    rect.left = wall.right
-                    collision_types['left'] = True
-                    if EnemyWaitCounter == waitTime:
-                        moving_right = True
-                        moving_left = False
-                        EnemyWaitCounter = 0
-                    else:
-                        EnemyWaitCounter += 1
-        
-            
-
+                movement,walls,rect,moving_left,moving_right,EnemyWaitCounter,waitTime,collision_types=NonAggroEnemyMovement(movement,tiles,rect,moving_left,moving_right,EnemyWaitCounter,waitTime,collision_types,wall)
         rect.y += movement[1]
         hit_list = collision_test(rect,tiles)
         for tile in hit_list:
