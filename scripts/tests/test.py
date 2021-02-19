@@ -1,4 +1,6 @@
-for i in range(0,9):
-    tile + i = i
+def func(abc):
+    print(abc)
 
-print(tile1) 
+func(ignore)
+
+print(num)
