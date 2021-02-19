@@ -28,4 +28,6 @@ class Player_character:
         self.player_flip = False 
         self.moving_right = False 
         self.moving_left = False
+        self.playJumpSound = True 
+        self.player_movement = [0,0]
  

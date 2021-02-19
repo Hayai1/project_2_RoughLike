@@ -42,12 +42,6 @@ class Engine:
             frame =0
         return action_var,frame
 
-def collision_test(rect,tiles):
-    hit_list = []
-    for tile in tiles:
-        if rect.colliderect(tile):
-            hit_list.append(tile)
-    return hit_list
 
 def collision_test(rect,tiles):
     hit_list = []
@@ -55,6 +49,8 @@ def collision_test(rect,tiles):
         if rect.colliderect(tile):
             hit_list.append(tile)
     return hit_list
+
+        
 
 class PhysicsEngine:
     def __init__(self,x,y,x_size,y_size):
@@ -63,28 +59,75 @@ class PhysicsEngine:
         self.rect = pygame.Rect(x,y,self.width,self.height)
         self.x = x
         self.y = y
+        self.collisions_enemy: dict
 
-    def move(self,movement,tiles):
+    def move(self,movement,tiles,walls,rect,playerIndicator,air_timer,vertical_momentum,moving_left,moving_right,EnemyWaitCounter,waitTime,aggro):
         collision_types = {'top':False,'bottom':False,'right':False,'left':False}
-        self.rect.x += movement[0]
-        hit_list = collision_test(self.rect,tiles)
+    
+        rect.x += movement[0]
+        hit_list = collision_test(rect,tiles)
         for tile in hit_list:
             if movement[0] > 0:
-                self.rect.right = tile.left
+                rect.right = tile.left
                 collision_types['right'] = True
             elif movement[0] < 0:
-                self.rect.left = tile.right
+                rect.left = tile.right
                 collision_types['left'] = True
-        self.rect.y += movement[1]
-        hit_list = collision_test(self.rect,tiles)
+        if playerIndicator == False:
+            wall_list = collision_test(rect,walls)
+            for wall in wall_list:
+                if movement[0] > 0:
+                    rect.right = wall.left
+                    collision_types['right'] = True
+                    if aggro == False:
+                        if EnemyWaitCounter == waitTime:
+                            moving_right = False
+                            moving_left = True
+                            EnemyWaitCounter = 0
+                        else:
+                            EnemyWaitCounter += 1
+                elif movement[0] < 0:
+                    rect.left = wall.right
+                    collision_types['left'] = True
+                    if aggro == False:
+                        if EnemyWaitCounter == waitTime:
+                            moving_right = True
+                            moving_left = False
+                            EnemyWaitCounter = 0
+                        else:
+                            EnemyWaitCounter += 1
+        
+            
+
+        rect.y += movement[1]
+        hit_list = collision_test(rect,tiles)
         for tile in hit_list:
             if movement[1] > 0:
-                self.rect.bottom = tile.top
+                rect.bottom = tile.top
                 collision_types['bottom'] = True
             elif movement[1] < 0:
-                self.rect.top = tile.bottom
+                rect.top = tile.bottom
                 collision_types['top'] = True
-        return self.rect, collision_types
+        if playerIndicator == False:
+            wall_list = collision_test(rect,walls)
+            for wall in wall_list:
+                if movement[1] > 0:
+                    wall.bottom = wall.top
+                    collision_types['bottom'] = True
+            
+                elif movement[1] < 0:
+                    wall.top = wall.bottom
+                    collision_types['top'] = True
+
+        if collision_types['bottom']:
+            vertical_momentum = 0
+            air_timer = 0
+        else:
+            air_timer += 1
+        if collision_types['top']:
+            vertical_momentum += 2
+        
+        return rect,vertical_momentum,air_timer,moving_left,moving_right,collision_types,EnemyWaitCounter
 
 
 def keyMap():

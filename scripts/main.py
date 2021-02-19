@@ -1,6 +1,7 @@
 import pygame, sys, time, random
 import modules.player_character.player_character as player_character
 import modules.engineFolder.engine as engine
+import modules.enemies.enemy_character as enemy_character
 
 clock = pygame.time.Clock()
 
@@ -32,28 +33,51 @@ if lp == 21:
 
 #background attribute
 true_scroll = [0,0] 
-bg = [-100,0]
+bg = [-100,-200]
 flag = False
-playJumpSound = True 
+#enemy variables
+waitTime =500
 # game engine because it starts the game
 def load_map(path):
     f = open(path + '.txt','r')
     data = f.read()
     f.close()
     data = data.split('\n')
-    game_map = []
+    map = []
     for row in data:
-        game_map.append(list(row))
-    return game_map
+        map.append(list(row))
+    return map
+
 
 #attribues for the game engine class
-game_map = load_map('Data/Game/frontTileMap')
+enemyloc = load_map('data/game/enemyLoc')
+game_map = load_map('data/game/frontTileMap')
 grass_img= pygame.image.load('assets/backgrounds/tiles/grass.png')
 dirt_img= pygame.image.load('assets/backgrounds/tiles/dirt.png')
+enemy_img= pygame.image.load('assets/Enemies/Relicsan.png')
 bg_image= pygame.image.load('assets/backgrounds/bgs/bg hills.png').convert()
 bg_image.set_colorkey((255,255,255))
+enemy_img.set_colorkey((255,255,255))
 
-
+counter = 0 
+y = 0
+enemyAtrributesClasses = []
+enemyPhysicsClasses = []
+for i in enemyloc:
+        x = 0
+        for enemy in i:
+            if enemy== '4':
+                enemy = ("EnemyAtributes_"+str(counter))
+                globals()[enemy] = enemy_character.Enemy_character(counter)
+                enemyAtrributesClasses.append(globals()[enemy])
+                enemy = ("EnemyPhysics_"+str(counter))
+                globals()[enemy] = engine.PhysicsEngine(x*16,y*16,45,45)
+                enemyPhysicsClasses.append(globals()[enemy])
+                counter += 1
+            else:
+                pass
+            x += 1
+        y += 1
 
 
 def fallCheck():
@@ -64,12 +88,38 @@ def fallCheck():
             return False
     return True
 
-enemyRect = pygame.Rect(650, 0, 45, 45)
-pygame.mixer.music.play()
-while True: # game loop
+
+
+def moving(moving_right,moving_left,vertical_momentum,movement):
+    movement = [0,0]
+    if moving_right == True:
     
+        movement[0] += 4
+    if moving_left == True:
+        movement[0] -= 4
+    movement[1] += vertical_momentum
+    vertical_momentum += 0.2
+    return movement, vertical_momentum
+
+
+def enmimMoving(moving_right,moving_left,vertical_momentum,movement):
+    movement = [0,0]
+    if moving_right == True:
+    
+        movement[0] += 1
+    if moving_left == True:
+        movement[0] -= 1
+    movement[1] += vertical_momentum
+    vertical_momentum += 0.2
+    return movement, vertical_momentum
+
+
+
+#pygame.mixer.music.play()
+counter = 0
+while True: # game loop
     display.fill((146,244,255)) # clear screen by filling it with bluee
-    pygame.draw.rect(display, (255,0,0), enemyRect)
+
 
     true_scroll[0] += (playerPhysics.rect.x-true_scroll[0]-200)/20
     true_scroll[1] += (playerPhysics.rect.y-true_scroll[1]-200)/20
@@ -78,7 +128,7 @@ while True: # game loop
     scroll[1] = int(scroll[1])
 
     display.blit(bg_image,(bg[0]-scroll[0]*0.25,bg[1]-scroll[1]*0.25))
-
+    
     tile_rects = []
     y = 0
     for layer in game_map:
@@ -92,50 +142,70 @@ while True: # game loop
                 tile_rects.append(pygame.Rect(x*16,y*16,16,16))
             x += 1
         y += 1
-    player_movement = [0,0]
-    if player_character1.moving_right == True:
-    
-        player_movement[0] += 4
-    if player_character1.moving_left == True:
-        player_movement[0] -= 4
-    player_movement[1] += player_character1.vertical_momentum
-    player_character1.vertical_momentum += 0.2
-    falling = fallCheck()
+    EnemyWalls = []
+    y = 0
+    for layer in enemyloc:
+        x = 0
+        for tile in layer:
+            if tile == '5':
+                EnemyWalls.append(pygame.Rect(x*16,y*16,16,16))
+            x += 1
+        y += 1
 
+    
+
+    
+    player_character1.player_movement,player_character1.vertical_momentum = moving(player_character1.moving_right,player_character1.moving_left,player_character1.vertical_momentum,player_character1.player_movement)
+    for EnemyAtributes in enemyAtrributesClasses:
+        EnemyAtributes.enemy_movement,EnemyAtributes.vertical_momentum = enmimMoving(EnemyAtributes.moving_right,EnemyAtributes.moving_left,EnemyAtributes.vertical_momentum,EnemyAtributes.enemy_movement)
     if fallCheck():
         player_character1.player_action,player_character1.player_frame =playerEngine.change_action(player_character1.player_action,player_character1.player_frame,'fall')
-        playJumpSound = False
-    elif player_movement[0] >0:
+        player_character1.playJumpSound = False
+    elif player_character1.player_movement[0] >0:
         player_character1.player_action,player_character1.player_frame =playerEngine.change_action(player_character1.player_action,player_character1.player_frame,'run')
         player_character1.player_flip = False
-    elif player_movement[0] ==0:
+    elif player_character1.player_movement[0] ==0:
         player_character1.player_action,player_character1.player_frame =playerEngine.change_action(player_character1.player_action,player_character1.player_frame,'idle')
-    elif player_movement[0] <0:
+    elif player_character1.player_movement[0] <0:
         player_character1.player_action,player_character1.player_frame =playerEngine.change_action(player_character1.player_action,player_character1.player_frame,'run')
         player_character1.player_flip = True
-    playerPhysics.rect,collisions = playerPhysics.move(player_movement,tile_rects)
     if fallCheck() == False:
-        playJumpSound = True
+        player_character1.playJumpSound = True
 
-    if collisions['bottom'] == True:
-        player_character1.air_timer = 0
-        player_character1.vertical_momentum = 0
-    else:
-        player_character1.air_timer += 1
-    if collisions['top']:
-        player_character1.vertical_momentum += 2
 
+ 
+    unused1 = 0  
+    unused2 = 0
+    playerPhysics.rect,player_character1.vertical_momentum,player_character1.air_timer,unused1,unused2,collision_types,null = playerPhysics.move(player_character1.player_movement,tile_rects,EnemyWalls,playerPhysics.rect,True,player_character1.air_timer,player_character1.vertical_momentum,unused1,unused2,0,0,EnemyAtributes.aggro)
+    del unused1,unused2,null
+    counter = 0
+    for i in range(0,len(enemyAtrributesClasses)):
+        EnemyPhysics=enemyPhysicsClasses[i]
+        EnemyAtributes=enemyAtrributesClasses[i]
+        EnemyPhysics.rect,EnemyAtributes.vertical_momentum,var,EnemyAtributes.moving_left,EnemyAtributes.moving_right,collision_types,EnemyAtributes.enemyWaitCounter = EnemyPhysics.move(EnemyAtributes.enemy_movement,tile_rects,EnemyWalls,EnemyPhysics.rect,False,0,EnemyAtributes.vertical_momentum,EnemyAtributes.moving_left,EnemyAtributes.moving_right,EnemyAtributes.enemyWaitCounter,waitTime,EnemyAtributes.aggro) 
+        del var
 
     player_character1.player_frame += 1
     if player_character1.player_frame >= len(playerEngine.animation_database[player_character1.player_action]):
         player_character1.player_frame = 0
     player_img_id = playerEngine.animation_database[player_character1.player_action][player_character1.player_frame]
     player_img = playerEngine.animation_frames[player_img_id]
+    for i in range(0,len(enemyAtrributesClasses)):
+        EnemyPhysics=enemyPhysicsClasses[i]
+        EnemyAtributes=enemyAtrributesClasses[i]
+
+        if EnemyPhysics.rect.x + 1000 < playerPhysics.rect.x or EnemyPhysics.rect.x - 1000 < playerPhysics.rect.x :
+            EnemyAtributes.aggro = True
+        if EnemyAtributes.moving_left:
+            EnemyAtributes.enemy_flip = True
+        else:
+            EnemyAtributes.enemy_flip = False
+        display.blit(pygame.transform.flip(enemy_img,EnemyAtributes.enemy_flip,False),(EnemyPhysics.rect.x-scroll[0],EnemyPhysics.rect.y-scroll[1]))
     display.blit(pygame.transform.flip(player_img,player_character1.player_flip,False),(playerPhysics.rect.x-scroll[0],playerPhysics.rect.y-scroll[1]))
 
-    player_character1.moving_right,player_character1.moving_left,player_character1.vertical_momentum,flag = EventEngine.Eventchecker(player_character1.air_timer,player_character1.moving_right,player_character1.moving_left,player_character1.vertical_momentum,flag,jumping,playJumpSound)
+    player_character1.moving_right,player_character1.moving_left,player_character1.vertical_momentum,flag = EventEngine.Eventchecker(player_character1.air_timer,player_character1.moving_right,player_character1.moving_left,player_character1.vertical_momentum,flag,jumping,player_character1.playJumpSound)
+                
 
-    #print(player_character1.vertical_momentum)
     screen.blit(pygame.transform.scale(display,WINDOW_SIZE),(0,0))
     pygame.display.update()
     clock.tick(60)
