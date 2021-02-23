@@ -1,4 +1,4 @@
-import pygame, sys, time, random
+import pygame, sys, time, random, json
 import modules.player_character.player_character as player_character
 import modules.engineFolder.engine as engine
 import modules.enemies.enemy_character as enemy_character
@@ -24,8 +24,7 @@ display = pygame.Surface((640,360),pygame.FULLSCREEN) # used as the surface for 
 
 playerEngine = engine.Engine(('assets/player_animations/run'),('assets/player_animations/idle'),('assets/player_animations/fall'),[7,7,7,7],[7,7,7,7,7,7],[7,7,7])
 player_character1 = player_character.Player_character()
-playerPhysics = engine.PhysicsEngine(100,100,45,45)
-EventEngine = engine.Events()
+playerPhysics = engine.PhysicsEngine(100,100,45,45,False,False)
 
 lp = random.randint(1,1000000)
 if lp == 21:
@@ -69,7 +68,7 @@ for i in enemyloc:
                 globals()[enemy] = enemy_character.Enemy_character(counter)
                 enemyAtrributesClasses.append(globals()[enemy])
                 enemy = ("EnemyPhysics_"+str(counter))
-                globals()[enemy] = engine.PhysicsEngine(x*16,y*16,45,45)
+                globals()[enemy] = engine.PhysicsEngine(x*16,y*16,45,45,False,True)
                 enemyPhysicsClasses.append(globals()[enemy])
                 counter += 1
             else:
@@ -82,7 +81,7 @@ def fallCheck():
     playerYChecker = ["0.6000000000000001","0.2","0.8","1.0","1.2","0.4"]
     for i in playerYChecker:
         i = float(i)
-        if player_character1.vertical_momentum == i:
+        if playerPhysics.vertical_momentum == i:
             return False
     return True
 
@@ -96,7 +95,7 @@ def moving(moving_right,moving_left,vertical_momentum,movement):
     if moving_left == True:
         movement[0] -= 4
     movement[1] += vertical_momentum
-    vertical_momentum += 0.2
+    vertical_momentum += 0.2 
     return movement, vertical_momentum
 
 
@@ -104,9 +103,9 @@ def enmimMoving(moving_right,moving_left,vertical_momentum,movement):
     movement = [0,0]
     if moving_right == True:
     
-        movement[0] += 5
+        movement[0] += 1
     if moving_left == True:
-        movement[0] -= 5
+        movement[0] -= 1
     movement[1] += vertical_momentum
     vertical_momentum += 0.2
     return movement, vertical_momentum
@@ -153,18 +152,17 @@ while True: # game loop
     
 
     #player animation coordinator
-    player_character1.player_movement,player_character1.vertical_momentum = moving(player_character1.moving_right,player_character1.moving_left,player_character1.vertical_momentum,player_character1.player_movement)
-    for EnemyAtributes in enemyAtrributesClasses:
-        EnemyAtributes.enemy_movement,EnemyAtributes.vertical_momentum = enmimMoving(EnemyAtributes.moving_right,EnemyAtributes.moving_left,EnemyAtributes.vertical_momentum,EnemyAtributes.enemy_movement)
+    playerPhysics.movement,playerPhysics.vertical_momentum = moving(playerPhysics.moving_right,playerPhysics.moving_left,playerPhysics.vertical_momentum,playerPhysics.movement)
+    
     if fallCheck():
         player_character1.player_action,player_character1.player_frame =playerEngine.change_action(player_character1.player_action,player_character1.player_frame,'fall')
         player_character1.playJumpSound = False
-    elif player_character1.player_movement[0] >0:
+    elif playerPhysics.movement[0] >0:
         player_character1.player_action,player_character1.player_frame =playerEngine.change_action(player_character1.player_action,player_character1.player_frame,'run')
         player_character1.player_flip = False
-    elif player_character1.player_movement[0] ==0:
+    elif playerPhysics.movement[0] ==0:
         player_character1.player_action,player_character1.player_frame =playerEngine.change_action(player_character1.player_action,player_character1.player_frame,'idle')
-    elif player_character1.player_movement[0] <0:
+    elif playerPhysics.movement[0] <0:
         player_character1.player_action,player_character1.player_frame =playerEngine.change_action(player_character1.player_action,player_character1.player_frame,'run')
         player_character1.player_flip = True
     if fallCheck() == False:
@@ -174,14 +172,15 @@ while True: # game loop
  
     ignore = 0
     #player movement and collison check
-    playerPhysics.rect,player_character1.vertical_momentum,player_character1.air_timer,ignore,ignore,collision_types,null = playerPhysics.move(player_character1.player_movement,tile_rects,EnemyWalls,playerPhysics.rect,True,player_character1.air_timer,player_character1.vertical_momentum,ignore,ignore,ignore,ignore)
+    playerPhysics.rect,playerPhysics.vertical_momentum,player_character1.air_timer,ignore,ignore,ingore = playerPhysics.move(tile_rects,EnemyWalls,True,player_character1.air_timer,ignore,ignore)
     counter = 0
     for i in range(0,len(enemyAtrributesClasses)):
         waitTime =500
         EnemyPhysics=enemyPhysicsClasses[i]
         EnemyAtributes=enemyAtrributesClasses[i]
+        EnemyPhysics.movement,EnemyPhysics.vertical_momentum = enmimMoving(EnemyPhysics.moving_right,EnemyPhysics.moving_left,EnemyPhysics.vertical_momentum,EnemyPhysics.movement)
         #enemy movement and collison check
-        EnemyPhysics.rect,EnemyAtributes.vertical_momentum,ignore,EnemyAtributes.moving_left,EnemyAtributes.moving_right,collision_types,EnemyAtributes.enemyWaitCounter = EnemyPhysics.move(EnemyAtributes.enemy_movement,tile_rects,EnemyWalls,EnemyPhysics.rect,False,0,EnemyAtributes.vertical_momentum,EnemyAtributes.moving_left,EnemyAtributes.moving_right,EnemyAtributes.enemyWaitCounter,waitTime) 
+        EnemyPhysics.rect,EnemyAtributes.vertical_momentum,ignore,EnemyAtributes.moving_left,EnemyAtributes.moving_right,EnemyAtributes.enemyWaitCounter = EnemyPhysics.move(tile_rects,EnemyWalls,False,0,EnemyAtributes.enemyWaitCounter,waitTime) 
         #enemy display
         if EnemyAtributes.moving_left:
             EnemyAtributes.enemy_flip = True
@@ -198,10 +197,8 @@ while True: # game loop
     player_img = playerEngine.animation_frames[player_img_id]
     display.blit(pygame.transform.flip(player_img,player_character1.player_flip,False),(playerPhysics.rect.x-scroll[0],playerPhysics.rect.y-scroll[1]))
     #events
-    player_character1.moving_right,player_character1.moving_left,player_character1.vertical_momentum,flag = EventEngine.Eventchecker(player_character1.air_timer,player_character1.moving_right,player_character1.moving_left,player_character1.vertical_momentum,flag,jumping,player_character1.playJumpSound)
-                
+    player_character1.moving_right,player_character1.moving_left,player_character1.vertical_momentum,flag = playerPhysics.Events(player_character1.air_timer,flag,jumping,player_character1.playJumpSound)          
     #clock / display/ displayupdate
     screen.blit(pygame.transform.scale(display,WINDOW_SIZE),(0,0))
     pygame.display.update()
     clock.tick(60)
-
