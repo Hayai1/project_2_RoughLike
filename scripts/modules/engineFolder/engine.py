@@ -21,17 +21,20 @@ def load_animation(path,frame_durations):#path, [7,7,40]
         return animation_frame_data, animation_frames
         
 class Engine:
-    def __init__(self,runPath,idlePath,fallPath,runFrames,idleFrames,fallFrames):
+    def __init__(self,runPath,idlePath,fallPath,landPath,runFrames,idleFrames,fallFrames,landFrames):
         self.animation_database = {}
         self.runPath = runPath
         self.idlePath = idlePath
         self.fallPath = fallPath
+        self.landPath = landPath
         self.runFrames = runFrames
         self.idleFrames = idleFrames
         self.fallFrames = fallFrames
+        self.landFrames = landFrames
         self.animation_database['run'],self.animation_frames = load_animation(runPath,runFrames)
         self.animation_database['idle'],self.animation_frames = load_animation(idlePath,idleFrames)
         self.animation_database['fall'],self.animation_frames = load_animation(fallPath,fallFrames)
+        self.animation_database['land'],self.animation_frames = load_animation(landPath,landFrames)
     
 
 
@@ -50,84 +53,6 @@ def collision_test(rect,tiles):
             hit_list.append(tile)
     return hit_list
 
-def NonAggroEnemyMovement(movement,walls,rect,moving_left,moving_right,EnemyWaitCounter,waitTime,collision_types,wall):
-    if movement[0] > 0:
-        rect.right = wall.left
-        collision_types['right'] = True
-        if EnemyWaitCounter == waitTime:
-            moving_right = False
-            moving_left = True
-            EnemyWaitCounter = 0
-        else:
-            EnemyWaitCounter += 1
-    elif movement[0] < 0:
-        rect.left = wall.right
-        collision_types['left'] = True
-        if EnemyWaitCounter == waitTime:
-            moving_right = True
-            moving_left = False
-            EnemyWaitCounter = 0
-        else:
-            EnemyWaitCounter += 1
-    return movement,walls,rect,moving_left,moving_right,EnemyWaitCounter,waitTime,collision_types
-        
-
-class PhysicsEngine:
-    def __init__(self,x,y,x_size,y_size):
-        self.width = x_size
-        self.height = y_size
-        self.rect = pygame.Rect(x,y,self.width,self.height)
-        self.x = x
-        self.y = y
-        self.collisions_enemy: dict
-
-    def move(self,movement,tiles,walls,rect,playerIndicator,air_timer,vertical_momentum,moving_left,moving_right,EnemyWaitCounter,waitTime):
-        collision_types = {'top':False,'bottom':False,'right':False,'left':False}
-    
-        rect.x += movement[0]
-        hit_list = collision_test(rect,tiles)
-        for tile in hit_list:
-            if movement[0] > 0:
-                rect.right = tile.left
-                collision_types['right'] = True
-            elif movement[0] < 0:
-                rect.left = tile.right
-                collision_types['left'] = True
-        if playerIndicator == False:
-            wall_list = collision_test(rect,walls)
-            for wall in wall_list:
-                movement,walls,rect,moving_left,moving_right,EnemyWaitCounter,waitTime,collision_types=NonAggroEnemyMovement(movement,tiles,rect,moving_left,moving_right,EnemyWaitCounter,waitTime,collision_types,wall)
-        rect.y += movement[1]
-        hit_list = collision_test(rect,tiles)
-        for tile in hit_list:
-            if movement[1] > 0:
-                rect.bottom = tile.top
-                collision_types['bottom'] = True
-            elif movement[1] < 0:
-                rect.top = tile.bottom
-                collision_types['top'] = True
-        if playerIndicator == False:
-            wall_list = collision_test(rect,walls)
-            for wall in wall_list:
-                if movement[1] > 0:
-                    wall.bottom = wall.top
-                    collision_types['bottom'] = True
-            
-                elif movement[1] < 0:
-                    wall.top = wall.bottom
-                    collision_types['top'] = True
-
-        if collision_types['bottom']:
-            vertical_momentum = 0
-            air_timer = 0
-        else:
-            air_timer += 1
-        if collision_types['top']:
-            vertical_momentum += 2
-        
-        return rect,vertical_momentum,air_timer,moving_left,moving_right,collision_types,EnemyWaitCounter
-
-
 def keyMap():
     f = open('data/config/input.json')
     data = json.load(f)
@@ -138,37 +63,116 @@ def keyMap():
     return rightButton,upButton,leftButton
 
 
+        
+
+class PhysicsEngine:
+    def __init__(self,x,y,x_size,y_size,moving_left,moving_right):
+        self.width = x_size
+        self.height = y_size
+        self.rect = pygame.Rect(x,y,self.width,self.height)
+        self.x = x
+        self.y = y
+        self.movement = [0,0]
+        self.vertical_momentum = 0
+        self.moving_left = moving_left
+        self.moving_right = moving_right
 
 
-keyMap()
-class Events:
-    def __init__(self):
-        self.rightButton,self.upButton,self.leftButton = keyMap()
+    def move(self,tiles,walls,playerIndicator,air_timer,EnemyWaitCounter,waitTime):
+        collision_types = {'top':False,'bottom':False,'right':False,'left':False}
+        self.rect.x += self.movement[0]
+        hit_list = collision_test(self.rect,tiles)
 
-    def Eventchecker(self,air_timer,moving_right,moving_left,vertical_momentum,flag,jumping,playJumpSound):
+        for tile in hit_list:
+
+            if self.movement[0] > 0:
+                self.rect.right = tile.left
+                collision_types['right'] = True
+            elif self.movement[0] < 0:
+                self.rect.left = tile.right
+                collision_types['left'] = True
+            
+    
+        if playerIndicator == False:
+            wall_list = collision_test(self.rect,walls)
+            for wall in wall_list:
+                if self.movement[0] > 0:
+                    self.rect.right = wall.left
+                    collision_types['right'] = True
+                    if EnemyWaitCounter == waitTime:
+                        self.moving_right = False
+                        self.moving_left = True
+                        EnemyWaitCounter = 0
+                    else:
+                        EnemyWaitCounter += 1
+                elif self.movement[0] < 0:
+                    self.rect.left = wall.right
+                    collision_types['left'] = True
+                    if EnemyWaitCounter == waitTime:
+                        self.moving_right = True
+                        self.moving_left = False
+                        EnemyWaitCounter = 0
+                    else:
+                        EnemyWaitCounter += 1
+
+
+        self.rect.y += self.movement[1]
+        hit_list = collision_test(self.rect,tiles)
+        for tile in hit_list:
+            if self.movement[1] > 0:
+                self.rect.bottom = tile.top
+                collision_types['bottom'] = True
+            elif self.movement[1] < 0:
+                self.rect.top = tile.bottom
+            
+                collision_types['top'] = True
+        if playerIndicator == False:
+            wall_list = collision_test(self.rect,walls)
+            for wall in wall_list:
+                if self.movement[1] > 0:
+                    wall.bottom = wall.top
+                    collision_types['bottom'] = True
+                elif self.movement[1] < 0:
+                    wall.top = wall.bottom
+                    collision_types['top'] = True
+
+        if collision_types['bottom']:
+            self.vertical_momentum = 0
+            air_timer = 0
+        else:
+            air_timer += 1
+        if collision_types['top']:
+            self.vertical_momentum += 2
+        
+        return self.rect,self.vertical_momentum,air_timer,self.moving_left,self.moving_right,EnemyWaitCounter
+
+
+    def Events(self,air_timer,flag,jumping,playJumpSound):
         for event in pygame.event.get(): # event loop
             if event.type == QUIT:
                 pygame.quit()
                 sys.exit()
             if event.type == KEYDOWN:
                 if event.key == K_RIGHT:
-                    moving_right = True
+                    self.moving_right = True
                 if event.key == K_LEFT:
-                    moving_left = True
+                    self.moving_left = True
                 if event.key == K_UP:
                     if playJumpSound:
                         pygame.mixer.Sound.play(jumping)
                     if air_timer < 6:
-                        vertical_momentum = -5
+                        self.vertical_momentum = -5
                         flag = True
             if event.type == KEYUP:
                 if event.key == K_RIGHT:
-                    moving_right = False
+                    self.moving_right = False
                 if event.key == K_LEFT:
-                    moving_left = False
-        return moving_right,moving_left,vertical_momentum,flag
+                    self.moving_left = False
+        return self.moving_right,self.moving_left,self.vertical_momentum,flag
                     
-        
+
+
+
 
 
 

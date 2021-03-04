@@ -12,6 +12,7 @@ class Player_character:
     player_flip: bool
     moving_right: bool
     moving_left: bool
+    incomingplayerLandAnim: bool
     
     
 
@@ -23,11 +24,8 @@ class Player_character:
     def set_default_values(self):
         self.player_action = 'idle'
         self.player_frame = 0 
-        self.vertical_momentum = 0 
         self.air_timer = 0 
         self.player_flip = False 
-        self.moving_right = False 
-        self.moving_left = False
-        self.playJumpSound = True 
-        self.player_movement = [0,0]
+        self.playJumpSound = True
+        self.incomingplayerLandAnim = False
  
